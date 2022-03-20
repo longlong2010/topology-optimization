@@ -74,7 +74,7 @@ if __name__ == '__main__':
     Xe = volfrac * numpy.ones((N, 1), dtype=numpy.float32);
     dC = numpy.zeros((N, 1), dtype=numpy.float32);
     figure, ax = plt.subplots();
-    for s in range(0, 1000):
+    for s in range(0, 30):
         t1 = time.time();
         K = scipy.sparse.dok_matrix((ndof, ndof), dtype=numpy.float32)
         P = numpy.zeros((ndof, 1), dtype=numpy.float32);
