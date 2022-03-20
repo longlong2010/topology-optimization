@@ -4,7 +4,7 @@ import math;
 import scipy.sparse;
 import scipy.sparse.linalg;
 import matplotlib.pyplot as plt;
-
+import time;
 def quadElement(nodes, property):
     Ke = numpy.zeros((8, 8), dtype=numpy.float32);
     [n1, n2, n3, n4] = nodes;
@@ -153,13 +153,13 @@ if __name__ == '__main__':
             Lm = (L1 + L2) / 2;
             for i in range(0, N):
                 nXe[i] = max(Xmin, max(Xe[i] - M, min(1., min(Xe[i] + M, Xe[i] * numpy.sqrt(abs(dC[i] / Lm))))));
-                print(Lm);
             #二分法搜索乘子
             if nXe.sum() > volfrac * N:
                 L1 = Lm;
             else:
                 L2 = Lm;
-
+        t2 = time.time();
+        print(s, t2 - t1);
         #结果可视化
         harvest = numpy.zeros((h - 1, w - 1), numpy.float32);
         for j in range(0, h - 1):

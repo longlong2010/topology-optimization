@@ -3,7 +3,7 @@ import math;
 import scipy.sparse;
 import scipy.sparse.linalg;
 import matplotlib.pyplot as plt;
-
+import time;
 def quadElement(nodes, property):
     Ke = numpy.zeros((8, 8), dtype=numpy.float32);
     [n1, n2, n3, n4] = nodes;
@@ -75,6 +75,7 @@ if __name__ == '__main__':
     dC = numpy.zeros((N, 1), dtype=numpy.float32);
     figure, ax = plt.subplots();
     for s in range(0, 1000):
+        t1 = time.time();
         K = scipy.sparse.dok_matrix((ndof, ndof), dtype=numpy.float32)
         P = numpy.zeros((ndof, 1), dtype=numpy.float32);
         for idx, e in enumerate(elements):
@@ -137,8 +138,8 @@ if __name__ == '__main__':
         dC = dCn;
 
         #优化设计参数
-        L1 = 0;
-        L2 = 1000000;
+        L1 = 0.;
+        L2 = 1000000.;
         M = 0.2;
         eps = 1e-4
         Xmin = 1e-3;
@@ -152,7 +153,8 @@ if __name__ == '__main__':
                 L1 = Lm;
             else:
                 L2 = Lm;
-
+        t2 = time.time();
+        print(s, t2 - t1);
         #结果可视化
         harvest = numpy.zeros((h - 1, w - 1), numpy.float32);
         for j in range(0, h - 1):
