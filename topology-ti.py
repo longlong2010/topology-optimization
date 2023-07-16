@@ -1,9 +1,10 @@
 import numpy;
 import math;
-import scipy.sparse;
-import scipy.sparse.linalg;
+import taichi as ti;
 import matplotlib.pyplot as plt;
 import time;
+
+ti.init();
 def quadElement(nodes, property):
     Ke = numpy.zeros((8, 8), dtype=numpy.float32);
     [n1, n2, n3, n4] = nodes;
@@ -38,6 +39,22 @@ def quadElement(nodes, property):
             B[2, i * 2 + 1] = Der[0, i];
         Ke += B.T @ D @ B * abs(numpy.linalg.det(J)) * w * t;
     return Ke;
+
+#taichi kernel 集成刚度矩阵
+@ti.kernel
+def fill(K: ti.types.sparse_matrix_builder(), Ke: ti.types.ndarray(), midof: ti.types.ndarray()):
+    for i in range(8):
+        for j in range(8):
+            mi = midof[i];
+            mj = midof[j];
+            K[mi, mj] += Ke[i, j];
+
+#taichi kernel 施加边界条件
+@ti.kernel
+def fixed(K: ti.types.sparse_matrix_builder(), dofn: ti.i32, v: ti.f32):
+    K[dofn, dofn] += v;
+    K[dofn + 1, dofn + 1] += v;
+
 
 if __name__ == '__main__':
     #材料及单元属性
@@ -76,13 +93,13 @@ if __name__ == '__main__':
     figure, ax = plt.subplots();
     for s in range(0, 30):
         t1 = time.time();
-        K = scipy.sparse.dok_matrix((ndof, ndof), dtype=numpy.float32)
+        K = ti.linalg.SparseMatrixBuilder(ndof, ndof, max_num_triplets=1000000)
         P = numpy.zeros((ndof, ), dtype=numpy.float32);
         for idx, e in enumerate(elements):
             Ke = quadElement([nodes[e[0]], nodes[e[1]], nodes[e[2]], nodes[e[3]]], property) * (Xe[idx] ** 3);
             k = 0;
             #自由度映射表
-            midof = dict();
+            midof = numpy.zeros((8), dtype=numpy.int32);
             for n in e:
                 dofn = n * 2;
                 midof[k] = dofn;
@@ -91,25 +108,25 @@ if __name__ == '__main__':
                 midof[k] = dofn;
                 k += 1;
             #单元刚度矩阵集成
-            for i in range(0, 8):
-                for j in range(0, 8):
-                    mi = midof[i];
-                    mj = midof[j];
-                    K[mi, mj] += Ke[i, j];
+            fill(K, Ke, midof);
         #施加位移边界条件
         for j in range(0, h):
             n = j * w;
             dofn = n * 2;
-            K[dofn, dofn] += 1e10;
-            K[dofn + 1, dofn + 1] += 1e10;
+            fixed(K, dofn, 1e10);
         #力边界条件
         #P[2 * (w - 1) + 1, 0] = 1;
         for j in range(0, h):
            P[(j * w + w - 1) * 2 + 1] = 1 / h;
            #P[(j * w + w - 1) * 2] = 1 / h;
         #求解位移
-        K = K.tocsr();
-        U = scipy.sparse.linalg.spsolve(K, P);
+        solver = ti.linalg.SparseSolver(solver_type="LLT");
+        A = K.build();
+        solver.analyze_pattern(A);
+        solver.factorize(A);
+        b = ti.field(ti.f32, shape=(ndof, ));
+        b.from_numpy(P);
+        U = solver.solve(b);
         E0 = 0.
         for jdx, e in enumerate(elements):
             Ke = quadElement([nodes[e[0]], nodes[e[1]], nodes[e[2]], nodes[e[3]]], property);

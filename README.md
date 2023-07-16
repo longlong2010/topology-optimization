@@ -4,7 +4,8 @@ Topology Optimization with Quad4/Tria3 Element
 > **60% weight of Cantilever Beam Demo**  
 > topology-2.py for python2  
 > topology-3.py for python3  
- 
+> topology-ti.py for taichi
+
 > **Topology Optimization Solver with Nastran BDF format**  
 > topology-solver.py (Demo in Model1.bdf)
 
